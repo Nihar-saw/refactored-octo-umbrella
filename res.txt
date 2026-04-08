@@ -1,0 +1,2 @@
+﻿src/components/Navbar.tsx(3,20): error TS6133: 'Award' is declared but its value is never read.
+src/pages/DeadlockSimulator.tsx(15,1): error TS6133: 'confetti' is declared but its value is never read.
