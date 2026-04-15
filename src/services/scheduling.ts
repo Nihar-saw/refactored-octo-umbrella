@@ -164,3 +164,72 @@ export const runPriority = (processes: Process[]): { gantt: GanttStep[], metrics
   
   return { gantt, metrics: completed };
 };
+
+export const runSRTF = (processes: Process[]): { gantt: GanttStep[], metrics: Process[] } => {
+  let currentTime = 0;
+  const gantt: GanttStep[] = [];
+  const completed: Process[] = [];
+  const n = processes.length;
+  
+  let pStates = processes.map(p => ({ ...p, remainingTime: p.burstTime }));
+  let finished = 0;
+  let currentProcessId: string | null = null;
+  let startTime = 0;
+
+  while (finished < n) {
+    // Find processes that have arrived
+    const arrived = pStates.filter(p => p.arrivalTime <= currentTime && p.remainingTime > 0);
+    
+    if (arrived.length === 0) {
+      if (currentProcessId !== null) {
+        gantt.push({ processId: currentProcessId, startTime, endTime: currentTime });
+        currentProcessId = null;
+      }
+      currentTime = Math.min(...pStates.filter(p => p.remainingTime > 0).map(p => p.arrivalTime));
+      continue;
+    }
+
+    // Pick process with shortest remaining time
+    const shortest = arrived.reduce((min, p) => p.remainingTime < min.remainingTime ? p : min, arrived[0]);
+
+    if (shortest.id !== currentProcessId) {
+      if (currentProcessId !== null) {
+        gantt.push({ processId: currentProcessId, startTime, endTime: currentTime });
+      }
+      currentProcessId = shortest.id;
+      startTime = currentTime;
+    }
+
+    // Execute for 1 time unit (simplest way to handle preemption)
+    shortest.remainingTime--;
+    currentTime++;
+
+    if (shortest.remainingTime === 0) {
+      finished++;
+      shortest.completionTime = currentTime;
+      shortest.turnaroundTime = shortest.completionTime - shortest.arrivalTime;
+      shortest.waitingTime = shortest.turnaroundTime - shortest.burstTime;
+      completed.push(shortest);
+      
+      gantt.push({ processId: currentProcessId!, startTime, endTime: currentTime });
+      currentProcessId = null;
+    }
+  }
+
+  // Merge consecutive Gantt steps for the same process
+  const mergedGantt: GanttStep[] = [];
+  if (gantt.length > 0) {
+    let current = { ...gantt[0] };
+    for (let i = 1; i < gantt.length; i++) {
+      if (gantt[i].processId === current.processId && gantt[i].startTime === current.endTime) {
+        current.endTime = gantt[i].endTime;
+      } else {
+        mergedGantt.push(current);
+        current = { ...gantt[i] };
+      }
+    }
+    mergedGantt.push(current);
+  }
+
+  return { gantt: mergedGantt, metrics: completed };
+};

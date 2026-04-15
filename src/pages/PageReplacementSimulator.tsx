@@ -19,6 +19,8 @@ import { Pie } from 'react-chartjs-2';
 import confetti from 'canvas-confetti';
 import GlassCard from '../components/ui/GlassCard';
 import ComplexityAnalyzer from '../components/ComplexityAnalyzer';
+import ComplexityBenchmark from '../components/ComplexityBenchmark';
+import LearningResources from '../components/LearningResources';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -29,6 +31,7 @@ const PageReplacementSimulator: React.FC = () => {
   const [results, setResults] = useState<PageState[] | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [showComplexity, setShowComplexity] = useState(false);
 
   const handleRun = () => {
     setIsSimulating(true);
@@ -36,6 +39,8 @@ const PageReplacementSimulator: React.FC = () => {
     if (algorithm === 'FIFO') res = runFIFO(pages, capacity);
     else if (algorithm === 'LRU') res = runLRU(pages, capacity);
     else res = runOptimal(pages, capacity);
+
+    setShowComplexity(false);
 
     setTimeout(() => {
       setResults(res);
@@ -73,7 +78,7 @@ const PageReplacementSimulator: React.FC = () => {
           <p className="text-text-secondary mt-2 max-w-2xl font-medium">
             Balance speed and efficiency by managing virtual memory. Your goal is to maximize the hit ratio and minimize expensive page faults.
           </p>
-        </div>
+        </div> 
         <div className="flex gap-4">
           <button 
             onClick={handleRun}
@@ -306,8 +311,34 @@ const PageReplacementSimulator: React.FC = () => {
 
           {/* Complexity Analyzer */}
           <ComplexityAnalyzer algorithm={algorithm} triggered={results !== null} />
+
+          {results && !showComplexity && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center pt-8"
+            >
+              <button
+                onClick={() => setShowComplexity(true)}
+                className="px-8 py-4 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-accent-primary flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              >
+                <TrendingUp size={18} className="group-hover:rotate-12 transition-transform" />
+                Analyze Time Complexity
+              </button>
+            </motion.div>
+          )}
         </div>
       </div>
+
+      {/* Time Complexity Analysis Section */}
+      <ComplexityBenchmark 
+        category="PAGE_REPLACEMENT" 
+        selectedAlgorithm={algorithm} 
+        triggered={showComplexity} 
+      />
+
+      {/* Learning Resources */}
+      <LearningResources topic="page-replacement" />
     </div>
   );
 };

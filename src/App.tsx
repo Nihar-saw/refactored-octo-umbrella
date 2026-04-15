@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import SchedulingSimulator from './pages/SchedulingSimulator';
 import PageReplacementSimulator from './pages/PageReplacementSimulator';
 import DeadlockSimulator from './pages/DeadlockSimulator';
+import ComplexityComparison from './pages/ComplexityComparison';
 
 
 const App: React.FC = () => {
@@ -16,6 +17,7 @@ const App: React.FC = () => {
             <Route path="/scheduling" element={<SchedulingSimulator />} />
             <Route path="/page-replacement" element={<PageReplacementSimulator />} />
             <Route path="/deadlock" element={<DeadlockSimulator />} />
+            <Route path="/complexity" element={<ComplexityComparison />} />
             {/* Fallback for routes not yet implemented */}
             <Route path="*" element={<Dashboard />} />
           </Routes>

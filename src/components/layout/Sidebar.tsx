@@ -6,7 +6,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   ShieldAlert,
-  BarChart3
+  BarChart3,
+  Brain
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -21,6 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     { name: 'Scheduling', icon: Terminal, path: '/scheduling' },
     { name: 'Page Replacement', icon: BarChart3, path: '/page-replacement' },
     { name: 'Deadlock Control', icon: ShieldAlert, path: '/deadlock' },
+    { name: 'Complexity Lab', icon: Brain, path: '/complexity' },
   ];
 
   return (

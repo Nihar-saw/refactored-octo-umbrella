@@ -13,8 +13,11 @@ import {
 import { checkSafety, calculateNeed, type DeadlockState, type SafetyResult } from '../services/deadlock';
 import { addXP } from '../services/gamification';
 import confetti from 'canvas-confetti';
+import { BarChart3 } from 'lucide-react';
 import GlassCard from '../components/ui/GlassCard';
 import ComplexityAnalyzer from '../components/ComplexityAnalyzer';
+import ComplexityBenchmark from '../components/ComplexityBenchmark';
+import LearningResources from '../components/LearningResources';
 
 const DeadlockSimulator: React.FC = () => {
   const [numProcesses, setNumProcesses] = useState(5);
@@ -42,6 +45,7 @@ const DeadlockSimulator: React.FC = () => {
   const [available, setAvailable] = useState<number[]>([3, 3, 2]);
   const [result, setResult] = useState<SafetyResult | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [showComplexity, setShowComplexity] = useState(false);
 
   useEffect(() => {
     setProcesses(Array.from({ length: numProcesses }, (_, i) => `P${i}`));
@@ -67,6 +71,7 @@ const DeadlockSimulator: React.FC = () => {
       return next;
     });
     
+    
     setAvailable(prev => {
       const next = new Array(numResources).fill(0);
       for (let j = 0; j < Math.min(prev.length, numResources); j++) {
@@ -80,6 +85,7 @@ const DeadlockSimulator: React.FC = () => {
     setIsSimulating(true);
     const state: DeadlockState = { processes, resourceTypes, allocation, max, available };
     const res = checkSafety(state);
+    setShowComplexity(false);
     
     setTimeout(() => {
       setResult(res);
@@ -337,6 +343,22 @@ const DeadlockSimulator: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {result && !showComplexity && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center pt-8"
+            >
+              <button
+                onClick={() => setShowComplexity(true)}
+                className="px-8 py-4 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-accent-primary flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              >
+                <BarChart3 size={18} className="group-hover:rotate-12 transition-transform" />
+                Analyze Time Complexity
+              </button>
+            </motion.div>
+          )}
         </div>
 
         {/* Intelligence Sidebar */}
@@ -390,6 +412,16 @@ const DeadlockSimulator: React.FC = () => {
           <ComplexityAnalyzer algorithm="Bankers" triggered={result !== null} />
         </div>
       </div>
+
+      {/* Time Complexity Analysis Section */}
+      <ComplexityBenchmark 
+        category="DEADLOCK" 
+        selectedAlgorithm="Bankers" 
+        triggered={showComplexity} 
+      />
+
+      {/* Learning Resources */}
+      <LearningResources topic="deadlock" />
     </div>
   );
 };

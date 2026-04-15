@@ -1,6 +1,10 @@
 export type ComplexityType = 'O(1)' | 'O(log n)' | 'O(n)' | 'O(n log n)' | 'O(n^2)';
 
+export type AlgorithmCategory = 'SCHEDULING' | 'PAGE_REPLACEMENT' | 'DEADLOCK';
+
 export interface ComplexityInfo {
+  name: string;
+  category: AlgorithmCategory;
   time: {
     best: string;
     average: string;
@@ -8,60 +12,94 @@ export interface ComplexityInfo {
   };
   space: string;
   reason: string;
-  type: ComplexityType;
+  type: ComplexityType;      // Primary Time Complexity Type
+  spaceType: ComplexityType; // Space Complexity Type
 }
 
 export const complexityData: Record<string, ComplexityInfo> = {
   // Scheduling
   'FCFS': {
+    name: 'FCFS',
+    category: 'SCHEDULING',
     time: { best: 'O(n)', average: 'O(n)', worst: 'O(n)' },
     space: 'O(1)',
-    reason: 'First-Come First-Served process list is traversed once to calculate metrics.',
-    type: 'O(n)'
+    reason: 'FCFS processes the list linearly. Each process is touched once for scheduling decisions.',
+    type: 'O(n)',
+    spaceType: 'O(1)'
   },
   'SJF': {
+    name: 'SJF (Non-Preemptive)',
+    category: 'SCHEDULING',
     time: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n log n)' },
     space: 'O(1)',
-    reason: 'Shortest Job First requires sorting the ready queue whenever a process finishes.',
-    type: 'O(n log n)'
+    reason: 'Requires sorting the ready queue or searching for the minimum burst time task.',
+    type: 'O(n log n)',
+    spaceType: 'O(1)'
+  },
+  'SRTF': {
+    name: 'SJF (Preemptive)',
+    category: 'SCHEDULING',
+    time: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n log n)' },
+    space: 'O(n)',
+    reason: 'Shortest Remaining Time First requires frequent sorting or monitoring of the ready queue upon every arrival or time step.',
+    type: 'O(n log n)',
+    spaceType: 'O(n)'
   },
   'Priority': {
+    name: 'Priority Scheduling',
+    category: 'SCHEDULING',
     time: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n log n)' },
     space: 'O(1)',
-    reason: 'Priority scheduling requires sorting processes in the ready queue based on priority levels.',
-    type: 'O(n log n)'
+    reason: 'Similar to SJF, tasks must be maintained in a priority-sorted order.',
+    type: 'O(n log n)',
+    spaceType: 'O(1)'
   },
   'RR': {
-    time: { best: 'O(n)', average: 'O(n \u00d7 q)', worst: 'O(n^2)' },
+    name: 'Round Robin',
+    category: 'SCHEDULING',
+    time: { best: 'O(n)', average: 'O(n)', worst: 'O(n)' },
     space: 'O(n)',
-    reason: 'Round Robin involves multiple context switches. In worst case (small quantum), it approaches quadratic complexity.',
-    type: 'O(n^2)'
+    reason: 'Maintains a FIFO queue of ready processes. Each enqueue/dequeue is O(1), leading to O(n) overall.',
+    type: 'O(n)',
+    spaceType: 'O(n)'
   },
   // Page Replacement
   'FIFO': {
+    name: 'First-In First-Out',
+    category: 'PAGE_REPLACEMENT',
     time: { best: 'O(n)', average: 'O(n)', worst: 'O(n)' },
     space: 'O(f)',
-    reason: 'FIFO uses a simple queue to track page entrance. Each page reference is handled in constant time relative to frames.',
-    type: 'O(n)'
+    reason: 'Uses a simple queue to manage page frames. Each reference is handled in constant time.',
+    type: 'O(n)',
+    spaceType: 'O(n)'
   },
   'LRU': {
-    time: { best: 'O(n)', average: 'O(n)', worst: 'O(n)' },
+    name: 'Least Recently Used',
+    category: 'PAGE_REPLACEMENT',
+    time: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n log n)' },
     space: 'O(f)',
-    reason: 'LRU tracks access order. With a hash map + doubly linked list, each access is O(1), leading to O(n) total.',
-    type: 'O(n)'
+    reason: 'Standard LRU can be O(n) with hash + linked list, but searching for victim in simpler implementations is O(n log n).',
+    type: 'O(n log n)',
+    spaceType: 'O(n)'
   },
   'OPTIMAL': {
-    time: { best: 'O(n)', average: 'O(n \u00d7 f)', worst: 'O(n \u00d7 f)' },
+    name: 'Optimal Page Replacement',
+    category: 'PAGE_REPLACEMENT',
+    time: { best: 'O(n^2)', average: 'O(n^2)', worst: 'O(n^2)' },
     space: 'O(f)',
-    reason: 'Optimal replacement scans future references for each fault to find the best page to replace.',
-    type: 'O(n)' // Usually treated as linear over string length if frames f is fixed
+    reason: 'Scans future references for every page fault to determine the furthest use, leading to quadratic time.',
+    type: 'O(n^2)',
+    spaceType: 'O(n)'
   },
   // Deadlock
   'Bankers': {
+    name: "Banker's Algorithm",
+    category: 'DEADLOCK',
     time: { best: 'O(n^2 \u00d7 m)', average: 'O(n^2 \u00d7 m)', worst: 'O(n^2 \u00d7 m)' },
     space: 'O(n \u00d7 m)',
-    reason: 'Bankers algorithm iterates through n processes, each requiring a check of m resource types across the list.',
-    type: 'O(n^2)'
+    reason: 'The safety algorithm iterates through n processes, checking m resources for each, potentially repeating n times.',
+    type: 'O(n^2)',
+    spaceType: 'O(n^2)'
   }
 };
 
@@ -76,21 +114,15 @@ export const getComplexityCurve = (type: ComplexityType, n: number): number => {
   }
 };
 
-export const generateGraphData = (_inputSize: number) => {
-  const labels = Array.from({ length: 11 }, (_, i) => i * 10 || 1);
-  const types: ComplexityType[] = ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)', 'O(n^2)'];
-  
-  return {
-    labels,
-    datasets: types.map(type => ({
-      label: type,
-      data: labels.map(l => getComplexityCurve(type, l)),
-      borderColor: 'rgba(255, 255, 255, 0.1)',
-      borderWidth: 1,
-      pointRadius: 0,
-      fill: false,
-      tension: 0.4,
-      type
-    }))
-  };
+export const complexityWeights: Record<ComplexityType, number> = {
+  'O(1)': 1,
+  'O(log n)': 2,
+  'O(n)': 3,
+  'O(n log n)': 4,
+  'O(n^2)': 5
 };
+
+export const getCategoryAlgorithms = (category: AlgorithmCategory) => {
+  return Object.values(complexityData).filter(algo => algo.category === category);
+};
+

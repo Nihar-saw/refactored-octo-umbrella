@@ -14,13 +14,15 @@ import {
   Clock,
   Trophy
 } from 'lucide-react';
-import { runFCFS, runSJF, runRR, runPriority, type Process, type GanttStep } from '../services/scheduling';
+import { runFCFS, runSJF, runSRTF, runRR, runPriority, type Process, type GanttStep } from '../services/scheduling';
 import { addXP } from '../services/gamification';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import confetti from 'canvas-confetti';
 import GlassCard from '../components/ui/GlassCard';
 import ComplexityAnalyzer from '../components/ComplexityAnalyzer';
+import ComplexityBenchmark from '../components/ComplexityBenchmark';
+import LearningResources from '../components/LearningResources';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -31,11 +33,12 @@ const SchedulingSimulator: React.FC = () => {
     { id: 'P3', arrivalTime: 4, burstTime: 1, priority: 3, remainingTime: 1 },
   ]);
   
-  const [algorithm, setAlgorithm] = useState<'FCFS' | 'SJF' | 'RR' | 'Priority'>('FCFS');
+  const [algorithm, setAlgorithm] = useState<'FCFS' | 'SJF' | 'SRTF' | 'RR' | 'Priority'>('FCFS');
   const [quantum, setQuantum] = useState(2);
   const [result, setResult] = useState<{ gantt: GanttStep[], metrics: Process[] } | null>(null);
   const [comparisonData, setComparisonData] = useState<any>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [showComplexity, setShowComplexity] = useState(false);
 
   const addProcess = () => {
     const newId = `P${processes.length + 1}`;
@@ -56,8 +59,11 @@ const SchedulingSimulator: React.FC = () => {
     
     if (algorithm === 'FCFS') runResult = runFCFS(processes);
     else if (algorithm === 'SJF') runResult = runSJF(processes);
+    else if (algorithm === 'SRTF') runResult = runSRTF(processes);
     else if (algorithm === 'Priority') runResult = runPriority(processes);
     else runResult = runRR(processes, quantum);
+    
+    setShowComplexity(false);
     
     setTimeout(() => {
       setResult(runResult);
@@ -65,6 +71,7 @@ const SchedulingSimulator: React.FC = () => {
       
       const fcfs = runFCFS(processes);
       const sjf = runSJF(processes);
+      const srtf = runSRTF(processes);
       const rr = runRR(processes, quantum);
       const priorityRun = runPriority(processes);
       
@@ -72,17 +79,17 @@ const SchedulingSimulator: React.FC = () => {
       const avgTAT = (metrics: Process[]) => metrics.length > 0 ? metrics.reduce((acc, p) => acc + (p.turnaroundTime || 0), 0) / metrics.length : 0;
 
       setComparisonData({
-        labels: ['FCFS', 'SJF', 'Priority', `RR (q=${quantum})`],
+        labels: ['FCFS', 'SJF (NP)', 'SJF (P)', 'Priority', `RR (q=${quantum})`],
         datasets: [
           {
             label: 'Avg Waiting Time',
-            data: [avgWT(fcfs.metrics), avgWT(sjf.metrics), avgWT(priorityRun.metrics), avgWT(rr.metrics)],
+            data: [avgWT(fcfs.metrics), avgWT(sjf.metrics), avgWT(srtf.metrics), avgWT(priorityRun.metrics), avgWT(rr.metrics)],
             backgroundColor: 'rgba(124, 77, 255, 0.6)',
             borderRadius: 6,
           },
           {
             label: 'Avg Turnaround Time',
-            data: [avgTAT(fcfs.metrics), avgTAT(sjf.metrics), avgTAT(priorityRun.metrics), avgTAT(rr.metrics)],
+            data: [avgTAT(fcfs.metrics), avgTAT(sjf.metrics), avgTAT(srtf.metrics), avgTAT(priorityRun.metrics), avgTAT(rr.metrics)],
             backgroundColor: 'rgba(0, 212, 255, 0.6)',
             borderRadius: 6,
           }
@@ -147,7 +154,8 @@ const SchedulingSimulator: React.FC = () => {
                   className="bg-bg-tertiary border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-semibold outline-none focus:border-accent-secondary transition-colors"
                 >
                   <option value="FCFS">FCFS (First Come First Serve)</option>
-                  <option value="SJF">SJF (Shortest Job First)</option>
+                  <option value="SJF">SJF (Non-Preemptive)</option>
+                  <option value="SRTF">SJF (Preemptive)</option>
                   <option value="Priority">Priority Scheduling</option>
                   <option value="RR">Round Robin (RR)</option>
                 </select>
@@ -335,6 +343,22 @@ const SchedulingSimulator: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {result && !showComplexity && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center pt-4"
+            >
+              <button
+                onClick={() => setShowComplexity(true)}
+                className="px-8 py-4 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-accent-primary flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              >
+                <BarChart3 size={18} className="group-hover:rotate-12 transition-transform" />
+                Analyze Time Complexity
+              </button>
+            </motion.div>
+          )}
         </div>
 
         {/* Analytics Sidebar */}
@@ -382,7 +406,9 @@ const SchedulingSimulator: React.FC = () => {
             </div>
             <p className="text-xs text-text-secondary leading-relaxed font-medium">
               {algorithm === 'SJF' 
-                ? 'Shortest Job First (SJF) minimizes average waiting time by prioritizing the fastest tasks. Beware of starvation for longer-running processes in high-traffic environments.'
+                ? 'Shortest Job First (SJF) is non-preemptive. It minimizes average waiting time by prioritizing the fastest tasks among those available at the start or completion of a job.'
+                : algorithm === 'SRTF'
+                ? 'Shortest Remaining Time First (SRTF) is the preemptive version of SJF. It context-switches whenever a new process arrives with a shorter remaining time than the current one, providing minimal possible average wait time.'
                 : algorithm === 'RR' 
                 ? 'Round Robin (RR) ensures fair CPU shares using preemption. The performance curve is highly sensitive to the Time Quantum; too large becomes FCFS, too small increases overhead.'
                 : algorithm === 'Priority'
@@ -395,6 +421,16 @@ const SchedulingSimulator: React.FC = () => {
           <ComplexityAnalyzer algorithm={algorithm} triggered={result !== null} />
         </div>
       </div>
+
+      {/* Time Complexity Analysis Section */}
+      <ComplexityBenchmark 
+        category="SCHEDULING" 
+        selectedAlgorithm={algorithm} 
+        triggered={showComplexity} 
+      />
+
+      {/* Learning Resources */}
+      <LearningResources topic="scheduling" />
     </div>
   );
 };
